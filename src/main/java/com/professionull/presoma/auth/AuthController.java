@@ -70,7 +70,7 @@ public class AuthController {
                                   String content, boolean isRequired, OffsetDateTime effectiveAt) {}
     public record ErrorBody(String code, String message) {}
     public record Envelope<T>(boolean success, T data, ErrorBody error) {
-        static <T> Envelope<T> ok(T data) {
+        public static <T> Envelope<T> ok(T data) {
             return new Envelope<>(true, data, null);
         }
     }

@@ -2,7 +2,7 @@ package com.professionull.presoma.auth;
 
 import org.springframework.http.HttpStatus;
 
-final class AuthException extends RuntimeException {
+public final class AuthException extends RuntimeException {
     private final HttpStatus status;
     private final String code;
 
@@ -12,11 +12,11 @@ final class AuthException extends RuntimeException {
         this.code = code;
     }
 
-    HttpStatus status() {
+    public HttpStatus status() {
         return status;
     }
 
-    String code() {
+    public String code() {
         return code;
     }
 
