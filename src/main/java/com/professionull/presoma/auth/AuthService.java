@@ -41,7 +41,7 @@ public class AuthService {
     }
 
     @Transactional
-    public UUID signup(SignupRequest request) {
+    public AuthController.CreatedUser signup(SignupRequest request) {
         String email = normalizeEmail(request.email());
         String nickname = request.nickname() == null ? "" : request.nickname().strip();
         String password = request.password();
@@ -55,24 +55,26 @@ public class AuthService {
                     "현재 시행 중인 가입 동의 문서를 확인해 주세요.");
         }
 
-        UUID userId = db.sql("""
+        AuthController.CreatedUser user = db.sql("""
                 INSERT INTO users (email, password_hash, nickname) VALUES (:email, :password, :nickname)
-                ON CONFLICT (email) DO NOTHING RETURNING id
+                ON CONFLICT (email) DO NOTHING RETURNING id, email, nickname, created_at
                 """)
                 .param("email", email)
                 .param("password", passwords.encode(password))
                 .param("nickname", nickname)
-                .query(UUID.class).optional()
+                .query((row, index) -> new AuthController.CreatedUser(row.getObject("id", UUID.class),
+                        row.getString("email"), row.getString("nickname"), row.getObject("created_at", OffsetDateTime.class)))
+                .optional()
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", "이미 가입된 이메일이에요."));
 
         db.sql("""
                 INSERT INTO user_consents (user_id, consent_document_id, consent_status, agreed_at)
                 VALUES (:userId, :documentId, 'AGREED', CURRENT_TIMESTAMP)
                 """)
-                .param("userId", userId)
+                .param("userId", user.id())
                 .param("documentId", document.id())
                 .update();
-        return userId;
+        return user;
     }
 
     @Transactional
