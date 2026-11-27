@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 @Profile("postgres")
 final class JwtAccessTokens {
     private static final String ISSUER = "jipsa-backend";
-    private static final Duration LIFETIME = Duration.ofHours(1);
+    static final Duration LIFETIME = Duration.ofHours(1);
     private final byte[] secret;
 
     JwtAccessTokens(@Value("${AUTH_JWT_SECRET:}") String secret) {

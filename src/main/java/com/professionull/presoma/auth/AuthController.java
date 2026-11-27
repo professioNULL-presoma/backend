@@ -31,12 +31,28 @@ public class AuthController {
     @PostMapping("/auth/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public Envelope<SignupResult> signup(@RequestBody SignupRequest request) {
-        return Envelope.ok(new SignupResult(auth.signup(request)));
+        return Envelope.ok(new SignupResult(auth.signup(request).id()));
     }
 
     @PostMapping("/auth/login")
     public Envelope<LoginResult> login(@RequestBody LoginRequest request) {
         return Envelope.ok(auth.login(request));
+    }
+
+    @PostMapping("/v1/users")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Envelope<CreatedUser> createUser(@RequestBody CreateUser request) {
+        return Envelope.ok(auth.signup(new SignupRequest(request.email(), request.password(),
+                request.nickname(), request.consentDocumentIds())));
+    }
+
+    @PostMapping("/v1/sessions")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Envelope<Session> createSession(@RequestBody LoginRequest request) {
+        LoginResult result = auth.login(request);
+        SessionUser user = new SessionUser(result.user().id(), request.email().strip().toLowerCase(java.util.Locale.ROOT),
+                result.user().nickname());
+        return Envelope.ok(new Session(result.accessToken(), "Bearer", JwtAccessTokens.LIFETIME.toSeconds(), user));
     }
 
     @GetMapping("/auth/me")
@@ -62,6 +78,10 @@ public class AuthController {
     }
 
     public record SignupRequest(String email, String password, String nickname, List<UUID> agreedConsentDocumentIds) {}
+    public record CreateUser(String email, String password, String nickname, List<UUID> consentDocumentIds) {}
+    public record CreatedUser(UUID id, String email, String nickname, OffsetDateTime createdAt) {}
+    public record SessionUser(UUID id, String email, String nickname) {}
+    public record Session(String accessToken, String tokenType, long expiresIn, SessionUser user) {}
     public record LoginRequest(String email, String password) {}
     public record SignupResult(UUID userId) {}
     public record Member(UUID id, String nickname) {}
@@ -70,7 +90,7 @@ public class AuthController {
                                   String content, boolean isRequired, OffsetDateTime effectiveAt) {}
     public record ErrorBody(String code, String message) {}
     public record Envelope<T>(boolean success, T data, ErrorBody error) {
-        static <T> Envelope<T> ok(T data) {
+        public static <T> Envelope<T> ok(T data) {
             return new Envelope<>(true, data, null);
         }
     }
